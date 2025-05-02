@@ -44,32 +44,8 @@
       
                PERFORM 0600-CALCUL THRU 0600-CALCUL-END
       
-               MOVE WS-RESULT TO WS-VISUAL-RESULT
-               DISPLAY "= " FUNCTION TRIM(WS-VISUAL-RESULT)
-               DISPLAY "Continuez le calcul ? (oui/non)"
-
-               PERFORM UNTIL FUNCTION LOWER-CASE(WS-INPUT) = "oui" 
-                   OR FUNCTION LOWER-CASE(WS-INPUT) = "non"
-                   ACCEPT WS-INPUT
-                   EVALUATE FUNCTION LOWER-CASE(WS-INPUT)
-                       WHEN "oui"
-                          MOVE WS-RESULT TO WS-NUM-1
-                          MOVE 'Y' TO WS-CONTINUE
-                       WHEN "non"
-                           STRING
-                                FUNCTION TRIM(WS-STORAGE) 
-                                    DELIMITED BY SIZE
-                                "=" DELIMITED BY SIZE
-                                FUNCTION TRIM(WS-VISUAL-RESULT) 
-                                    DELIMITED BY SIZE
-                                INTO WS-STORAGE
-                           END-STRING
-                           MOVE 'N' TO WS-CONTINUE
-                           CONTINUE
-                       WHEN OTHER
-                          DISPLAY "oui ou non"
-                   END-EVALUATE  
-               END-PERFORM
+               PERFORM 0700-CONTINUE-CALCUL 
+                   THRU 0700-CONTINUE-CALCUL-END
 
            END-PERFORM
 
@@ -232,20 +208,69 @@
        .
 
        0600-CALCUL.
+
            EVALUATE WS-OPERATOR
+
                WHEN "+"
                   ADD WS-NUM-1 WS-NUM-2 GIVING WS-RESULT
+
                WHEN "-"
                   SUBTRACT WS-NUM-2 FROM WS-NUM-1 GIVING WS-RESULT
+
                WHEN "x"
                   MULTIPLY WS-NUM-1 BY WS-NUM-2 GIVING WS-RESULT
+
                WHEN "/"
                   DIVIDE WS-NUM-1 BY WS-NUM-2 GIVING WS-RESULT
+
                WHEN "^"
                   COMPUTE WS-RESULT = WS-NUM-1 ** WS-NUM-2
+
            END-EVALUATE
        .
 
        0600-CALCUL-END.
            EXIT 
        .
+
+       0700-CONTINUE-CALCUL.
+
+           MOVE WS-RESULT TO WS-VISUAL-RESULT
+           DISPLAY "= " FUNCTION TRIM(WS-VISUAL-RESULT)
+           DISPLAY "Continuez le calcul ? (oui/non)"
+
+           PERFORM UNTIL FUNCTION LOWER-CASE(WS-INPUT) = "oui" 
+               OR FUNCTION LOWER-CASE(WS-INPUT) = "non"
+
+               ACCEPT WS-INPUT
+
+               EVALUATE FUNCTION LOWER-CASE(WS-INPUT)
+
+                   WHEN "oui"
+                      MOVE WS-RESULT TO WS-NUM-1
+                      MOVE 'Y' TO WS-CONTINUE
+
+                   WHEN "non"
+                       STRING
+                            FUNCTION TRIM(WS-STORAGE) 
+                                DELIMITED BY SIZE
+                            "=" DELIMITED BY SIZE
+                            FUNCTION TRIM(WS-VISUAL-RESULT) 
+                                DELIMITED BY SIZE
+                            INTO WS-STORAGE
+                       END-STRING
+                       MOVE 'N' TO WS-CONTINUE
+
+                   WHEN OTHER
+
+                      DISPLAY "oui ou non"
+
+               END-EVALUATE  
+
+           END-PERFORM
+       .
+
+       0700-CONTINUE-CALCUL-END.
+           EXIT 
+       .
+       
