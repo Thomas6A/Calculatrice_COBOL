@@ -9,13 +9,14 @@
        WORKING-STORAGE SECTION.
        
        01  WS-NUM-1            PIC S9(3)V99.
-       01  WS-VISUAL-NUM-1     PIC -Z(2)9.99.
        01  WS-NUM-2            PIC S9(3)V99.
-       01  WS-VISUAL-NUM-2     PIC -Z(2)9.99.
+       01  WS-VISUAL-NUM-1     PIC Z(2)9.99.
+       01  WS-VISUAL-NUM-2     PIC Z(2)9.99.
        01  WS-OPERATOR         PIC X.
        01  WS-RESULT           PIC S9(9)v99.
-       01  WS-VISUAL-RESULT    PIC -Z(8)9.99.
+       01  WS-VISUAL-RESULT    PIC Z(8)9.99.
        01  WS-STORAGE          PIC X(255).
+       01  WS-CALCUL           PIC X(100).
        01  WS-INPUT            PIC X(5).
        01  WS-BOOL             PIC X            VALUE 'N'.
        01  WS-CONTINUE         PIC X            VALUE 'N'.
@@ -84,15 +85,8 @@
 
                MOVE WS-NUM-1 TO WS-VISUAL-NUM-1
 
-               STRING
-
-                   FUNCTION TRIM(WS-STORAGE) 
-                       DELIMITED BY SIZE
-                   " (" DELIMITED BY SIZE
-                   FUNCTION TRIM(WS-VISUAL-NUM-1) DELIMITED BY SIZE
-                   INTO WS-STORAGE
-
-               END-STRING
+               PERFORM 0210-CALCUL-STRING-1 
+                   THRU 0210-CALCUL-STRING-1-END
 
            END-IF
        .
@@ -101,9 +95,31 @@
            EXIT
        .
 
+       0210-CALCUL-STRING-1.
+           IF WS-NUM-1 < 0
+               STRING 
+                   " (-" DELIMITED BY SIZE
+                   FUNCTION TRIM(WS-VISUAL-NUM-1) DELIMITED BY SIZE
+                       INTO WS-CALCUL
+               END-STRING
+           ELSE 
+               STRING 
+                   " (" DELIMITED BY SIZE
+                   FUNCTION TRIM(WS-VISUAL-NUM-1) DELIMITED BY SIZE
+                       INTO WS-CALCUL
+               END-STRING
+           END-IF
+           
+       .
+
+       0210-CALCUL-STRING-1-END.
+           EXIT 
+       . 
+
        0300-OPERATOR.
            PERFORM UNTIL WS-BOOL = 'Y'
-
+               
+               DISPLAY WS-CALCUL
                DISPLAY "Entrez l'opérateur ( +, -, x, /, ^ )"
                ACCEPT WS-INPUT
                
@@ -113,14 +129,8 @@
                   MOVE WS-INPUT TO WS-OPERATOR
                   MOVE 'Y' TO WS-BOOL
 
-                  STRING
-
-                      FUNCTION TRIM(WS-STORAGE) 
-                          DELIMITED BY SIZE
-                      WS-OPERATOR DELIMITED BY SIZE
-                      INTO WS-STORAGE
-
-                  END-STRING
+                  PERFORM 0310-OPERATOR-STRING 
+                      THRU 0310-OPERATOR-STRING-END
 
                ELSE
 
@@ -138,9 +148,25 @@
            EXIT
        .
 
+       0310-OPERATOR-STRING.
+           STRING
+
+               FUNCTION TRIM(WS-CALCUL) 
+                   DELIMITED BY SIZE
+               WS-OPERATOR DELIMITED BY SIZE
+               INTO WS-CALCUL
+
+           END-STRING
+       .
+
+       0310-OPERATOR-STRING-END.
+           EXIT 
+       .
+
        0400-NUM-2.
            PERFORM UNTIL WS-BOOL = 'Y'
 
+               DISPLAY WS-CALCUL
                DISPLAY "Entrez un autre nombre (3 chiffres max)"
                ACCEPT WS-INPUT
                MOVE WS-INPUT TO WS-NUM-2
@@ -156,32 +182,8 @@
                    MOVE 'Y' TO WS-BOOL
                    MOVE WS-NUM-2 TO WS-VISUAL-NUM-2
 
-                   IF WS-CONTINUE = "Y"
-
-                       STRING
-
-                           FUNCTION TRIM(WS-STORAGE) 
-                               DELIMITED BY SIZE
-                           FUNCTION TRIM(WS-VISUAL-NUM-2) 
-                               DELIMITED BY SIZE
-                           INTO WS-STORAGE
-
-                       END-STRING
-
-                   ELSE
-
-                       STRING
-
-                           FUNCTION TRIM(WS-STORAGE) 
-                               DELIMITED BY SIZE
-                           FUNCTION TRIM (WS-VISUAL-NUM-2) 
-                               DELIMITED BY SIZE
-                           ")" DELIMITED BY SIZE
-                           INTO WS-STORAGE
-
-                       END-STRING
-
-                   END-IF
+                   PERFORM 0410-CALCUL-STRING-2 
+                       THRU 0410-CALCUL-STRING-2-END
                  
                ELSE
 
@@ -196,6 +198,58 @@
        .
 
        0400-NUM-2-END.
+           EXIT 
+       .
+
+       0410-CALCUL-STRING-2.
+           IF WS-CONTINUE = "Y"
+
+                   IF WS-NUM-2 < 0
+                      STRING
+                        FUNCTION TRIM(WS-CALCUL) 
+                               DELIMITED BY SIZE
+                        "(-" DELIMITED BY SIZE
+                        FUNCTION TRIM(WS-VISUAL-NUM-2) 
+                               DELIMITED BY SIZE
+                        ")" DELIMITED BY SIZE
+                        INTO WS-CALCUL
+                      END-STRING
+                   ELSE 
+                    STRING
+                        FUNCTION TRIM(WS-CALCUL) 
+                               DELIMITED BY SIZE
+                        FUNCTION TRIM(WS-VISUAL-NUM-2) 
+                               DELIMITED BY SIZE
+                        INTO WS-CALCUL
+                    END-STRING
+                END-IF
+            ELSE
+                IF WS-NUM-2 < 0
+                      STRING
+                        FUNCTION TRIM(WS-CALCUL) 
+                               DELIMITED BY SIZE
+                        "(-" DELIMITED BY SIZE
+                        FUNCTION TRIM(WS-VISUAL-NUM-2) 
+                               DELIMITED BY SIZE
+                        "))" DELIMITED BY SIZE
+                        INTO WS-CALCUL
+                      END-STRING
+                ELSE 
+                    STRING
+                        FUNCTION TRIM(WS-CALCUL) 
+                               DELIMITED BY SIZE
+                        FUNCTION TRIM(WS-VISUAL-NUM-2) 
+                               DELIMITED BY SIZE
+                        ")" DELIMITED BY SIZE
+                        INTO WS-CALCUL
+                    END-STRING
+
+                END-IF
+
+           END-IF
+       .
+
+       0410-CALCUL-STRING-2-END.
            EXIT 
        .
 
@@ -236,7 +290,13 @@
        0700-CONTINUE-CALCUL.
 
            MOVE WS-RESULT TO WS-VISUAL-RESULT
-           DISPLAY "= " FUNCTION TRIM(WS-VISUAL-RESULT)
+           DISPLAY WS-CALCUL
+           IF WS-RESULT < 0
+              DISPLAY "= -" FUNCTION TRIM(WS-VISUAL-RESULT)
+           ELSE
+              DISPLAY "= " FUNCTION TRIM(WS-VISUAL-RESULT)
+           END-IF
+           
            DISPLAY "Continuez le calcul ? (oui/non)"
 
            PERFORM UNTIL FUNCTION LOWER-CASE(WS-INPUT) = "oui" 
@@ -251,14 +311,11 @@
                       MOVE 'Y' TO WS-CONTINUE
 
                    WHEN "non"
-                       STRING
-                            FUNCTION TRIM(WS-STORAGE) 
-                                DELIMITED BY SIZE
-                            "=" DELIMITED BY SIZE
-                            FUNCTION TRIM(WS-VISUAL-RESULT) 
-                                DELIMITED BY SIZE
-                            INTO WS-STORAGE
-                       END-STRING
+                       
+                       PERFORM 0710-RESULT-STRING 
+                           THRU 0710-RESULT-STRING-END
+                       
+                       MOVE SPACES TO WS-CALCUL
                        MOVE 'N' TO WS-CONTINUE
 
                    WHEN OTHER
@@ -273,4 +330,33 @@
        0700-CONTINUE-CALCUL-END.
            EXIT 
        .
-       
+
+       0710-RESULT-STRING.
+           IF WS-RESULT < 0
+               STRING
+                    FUNCTION TRIM(WS-STORAGE) 
+                        DELIMITED BY SIZE
+                    " " DELIMITED BY SIZE
+                    FUNCTION TRIM(WS-CALCUL)
+                    "= -" DELIMITED BY SIZE
+                    FUNCTION TRIM(WS-VISUAL-RESULT) 
+                        DELIMITED BY SIZE
+                    INTO WS-STORAGE
+               END-STRING
+           ELSE 
+               STRING
+                    FUNCTION TRIM(WS-STORAGE) 
+                        DELIMITED BY SIZE
+                    " " DELIMITED BY SIZE
+                    FUNCTION TRIM(WS-CALCUL)
+                    "= " DELIMITED BY SIZE
+                    FUNCTION TRIM(WS-VISUAL-RESULT) 
+                        DELIMITED BY SIZE
+                    INTO WS-STORAGE
+               END-STRING
+           END-IF
+       .
+
+       0710-RESULT-STRING-END.
+           EXIT 
+       .
